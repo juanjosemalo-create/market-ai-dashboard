@@ -17,6 +17,7 @@ from scoring import (
     entry_signal,
     SCORE_RANGES, SCORE_EXPLANATIONS, SCORE_MEANING, INDICATOR_REFERENCE, GLOSSARY,
 )
+from manual import render_manual, open_manual
 
 st.set_page_config(page_title="AI / Semis Market Sentiment v5", layout="wide")
 st.title("AI / Semis Market Sentiment Dashboard - v5")
@@ -25,6 +26,8 @@ st.caption("Scoring por percentil (~2 anios) + semaforos + pesos recalibrados co
 
 with st.sidebar:
     st.header("Configuracion")
+    st.button("\U0001F4D6 Manual de la herramienta", use_container_width=True, on_click=open_manual)
+    st.markdown("---")
     auto_refresh = st.toggle("Auto-refrescar", value=True)
     refresh_minutes = st.slider("Refresco (min)", 1, 30, DEFAULT_REFRESH_MINUTES, 1)
     include_options = st.toggle("Incluir opciones (Yahoo)", value=True)
@@ -35,6 +38,11 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("**Leyenda de semaforos**")
     st.markdown("\U0001F7E2 tranquilo  \U0001F7E1 ojo/presion  \U0001F534 alerta  \U0001F535 capitulacion (posible piso)")
+
+# Si el manual esta abierto, mostrarlo y NO renderizar el tablero
+if st.session_state.get("show_manual", False):
+    render_manual()
+    st.stop()
 
 if auto_refresh:
     st_autorefresh(interval=refresh_minutes * 60 * 1000, key="market_refresh")
