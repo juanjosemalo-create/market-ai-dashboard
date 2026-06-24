@@ -144,14 +144,17 @@ def compute_composites(m: dict) -> dict:
     }
     market_stress = weighted_average(market_items)
 
-    # AI/Semis: VXN/VIX YA NO ENTRA (era ruido como predictor).
+    # AI/Semis: pesos ajustados por el backtest de relativos.
+    #  - QQQ-SPY validado (lift ~1,7 parejo) -> peso alto.
+    #  - SMH-QQQ y NVDA-SMH solo levemente utiles -> degradados.
+    #  - VXN (analogo Nasdaq del VIX, que valido fuerte) sostiene peso.
     ai_items = {
-        "VXN":           (g("s_vxn"),        0.20),
+        "VXN":           (g("s_vxn"),        0.25),
         "SMH-QQQ 5d":    (g("s_smh_qqq_5"),  0.10),
-        "SMH-QQQ 20d":   (g("s_smh_qqq_20"), 0.25),
-        "QQQ-SPY 20d":   (g("s_qqq_spy_20"), 0.20),
-        "NVDA-SMH 20d":  (g("s_nvda_smh_20"),0.15),
-        "VXN cambio 1d": (g("s_vxn_chg"),    0.10),
+        "SMH-QQQ 20d":   (g("s_smh_qqq_20"), 0.15),   # degradado (era 0.25)
+        "QQQ-SPY 20d":   (g("s_qqq_spy_20"), 0.25),   # validado -> peso alto
+        "NVDA-SMH 20d":  (g("s_nvda_smh_20"),0.10),   # el mas flojo
+        "VXN cambio 1d": (g("s_vxn_chg"),    0.15),
     }
     ai_semis_stress = weighted_average(ai_items)
 
@@ -292,13 +295,16 @@ def entry_signal(m: dict) -> dict:
     else:
         term_level = 3
 
-    # Confirmadores validados
+    # Confirmadores validados por el backtest
     conf = 0
     conf_txt = []
     if not pd.isna(s_credit) and s_credit >= 80:
         conf += 1; conf_txt.append("credito en estres")
     if not pd.isna(s_vix) and s_vix >= 80:
         conf += 1; conf_txt.append("VIX elevado")
+    s_qqqspy = m.get("s_qqq_spy_20")   # alto = Nasdaq debil vs S&P (relativo validado)
+    if not pd.isna(s_qqqspy) and s_qqqspy >= 80:
+        conf += 1; conf_txt.append("Nasdaq debil vs S&P")
 
     if term_level is None:
         return {"emoji": "\u26aa", "nivel": "sin dato", "titulo": "Sin dato suficiente",
@@ -396,8 +402,10 @@ INDICATOR_REFERENCE = [
      "Que significa": "Aporta, pero menos que el nivel. Peso reducido."},
     {"Indicador": "VXN/VIX", "Validado por backtest": "NO - lift <1, no anticipa",
      "Que significa": "Solo informativo: dice si el nervio esta en tech vs mercado. NO entra al score de riesgo."},
-    {"Indicador": "SMH-QQQ, QQQ-SPY, NVDA-SMH", "Validado por backtest": "No testeado aun",
-     "Que significa": "Miden liderazgo bajista del sector. Descriptivos hasta backtestearlos."},
+    {"Indicador": "QQQ-SPY 20d", "Validado por backtest": "SI - el relativo bueno (lift ~1,7 parejo)",
+     "Que significa": "Negativo = Nasdaq cae mas que el mercado. Confirmador del semaforo de entrada."},
+    {"Indicador": "SMH-QQQ y NVDA-SMH 20d", "Validado por backtest": "Debiles (lift ~1,1-1,5) - peso reducido",
+     "Que significa": "Sirven algo para SPY, casi nada para SMH. Quedan con poco peso."},
     {"Indicador": "Breadth / RSI / Drawdown", "Validado por backtest": "No testeado (alimentan Capitulation)",
      "Que significa": "Sobreventa y amplitud. Utiles para detectar pisos, no para anticipar."},
 ]
