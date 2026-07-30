@@ -1,0 +1,15 @@
+ACTUALIZAR TU DASHBOARD EN GITHUB
+
+1. Entrá al repositorio que ya usa Streamlit Cloud.
+2. Elegí Add file > Upload files.
+3. Arrastrá TODOS los archivos de esta carpeta y también la carpeta pages.
+4. Aceptá reemplazar app.py, data_sources.py, scoring.py, config.py, manual.py, requirements.txt y README.md.
+5. Confirmá con Commit changes.
+6. No cambies la configuración de Streamlit Cloud: el archivo principal sigue siendo app.py.
+7. Cuando termine el redeploy, en el menú lateral aparecerá “VIX VIX3M Probabilidades”.
+
+ARCHIVOS NUEVOS IMPORTANTES
+- vix_probability_engine.py
+- pages/2_VIX_VIX3M_Probabilidades.py
+
+La página principal v5 permanece. El nuevo motor es una segunda página conectada.

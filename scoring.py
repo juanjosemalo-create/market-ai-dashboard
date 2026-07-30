@@ -218,57 +218,6 @@ def tactical_reading(ai_semis: float, capitulation: float, term_score: float = f
 
 
 # =====================================================================
-# SEMAFORO UNICO DE ENTRADA  (solo con seniales VALIDADAS por backtest)
-# =====================================================================
-# Combina term structure + credito + VIX (las 3 que el backtest confirmo).
-# Term pesa mas porque fue el mejor predictor. Backwardation fuerza rojo
-# (lift 7 en el backtest). Capitulation actua de contrapeso: arriba de 75
-# avisa que NO es momento de vender en panico.
-def entry_signal(m: dict):
-    ratio = m.get("VIX/VIX3M")
-    s_term = m.get("s_term")
-    s_credit = m.get("s_credit")
-    s_vix = m.get("s_vix")
-    cap = m.get("capitulation_score")
-
-    # Riesgo combinado ponderado (term el mas fuerte)
-    items = {"term": (s_term, 0.50), "credit": (s_credit, 0.30), "vix": (s_vix, 0.20)}
-    riesgo = weighted_average(items)
-
-    # Override duro: backwardation siempre es rojo
-    backwardation = (not pd.isna(ratio)) and ratio > 1.00
-    comprimido = (not pd.isna(ratio)) and ratio > 0.95
-
-    if backwardation or (not pd.isna(riesgo) and riesgo > 70):
-        nivel, emoji = "ALERTA", "\U0001F534"
-    elif comprimido or (not pd.isna(riesgo) and riesgo > 50):
-        nivel, emoji = "PRECAUCION", "\U0001F7E1"
-    elif pd.isna(riesgo):
-        nivel, emoji = "SIN DATO", "\u26aa"
-    else:
-        nivel, emoji = "OK", "\U0001F7E2"
-
-    capitulando = (not pd.isna(cap)) and cap > 75
-
-    if nivel == "ALERTA" and capitulando:
-        msg = ("Estres sistemico alto PERO con capitulacion. NO vendas en panico: "
-               "estadisticamente esta zona suele marcar pisos. Si tocas la cartera, es para "
-               "acumular escalonado (DCA), no para liquidar.")
-    elif nivel == "ALERTA":
-        msg = ("Riesgo alto de baja de mercado. No agregar exposicion nueva agresiva; "
-               "tener polvora seca y revisar coberturas. El term structure es la alarma principal.")
-    elif nivel == "PRECAUCION":
-        msg = ("El colchon se esta consumiendo. No es momento de agregar agresivo. "
-               "DCA normal o pausado, sin acelerar compras.")
-    elif nivel == "OK":
-        msg = "Sin senial de alerta sistemica. Operativa normal; el DCA puede seguir su curso."
-    else:
-        msg = "Faltan datos para una lectura de entrada."
-
-    return emoji, nivel, msg, (round(riesgo) if not pd.isna(riesgo) else None)
-
-
-# =====================================================================
 # SEMAFORO UNICO DE ENTRADA  -  sintesis de las seniales VALIDADAS
 # =====================================================================
 def entry_signal(m: dict) -> dict:

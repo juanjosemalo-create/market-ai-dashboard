@@ -1,65 +1,58 @@
-# Market AI Dashboard v4
+# Market AI / Semis Dashboard v5 + VIX/VIX3M
 
-Dashboard Streamlit de sentimiento/riesgo de mercado con foco en IA, Nasdaq y semiconductores.
+Aplicación Streamlit de sentimiento y riesgo de mercado con foco en IA, Nasdaq y semiconductores. Esta versión conserva íntegramente el dashboard v5 y agrega una segunda página estadística para VIX/VIX3M y SPX.
 
-## Qué cambió vs v3 (lo importante)
+## Estructura
 
-El salto de v4 es **metodológico**, no cosmético:
+### Página principal — `app.py`
 
-1. **Scoring por percentil, no por umbral fijo.** Cada indicador se mide contra su
-   propio régimen de ~2 años (`PCT_LOOKBACK = 504` ruedas). Un VIX de 20 ya no vale
-   lo mismo siempre: vale según dónde esté respecto de su propia historia. Esto se
-   alimenta de la historia diaria de Yahoo, así que funciona desde el primer arranque
-   (no depende de acumular snapshots).
+- General Risk, AI/Semis Risk, Market Stress, Options Sentiment y Capitulation.
+- Semáforo único de entrada.
+- Scoring por percentiles de aproximadamente dos años.
+- Term structure VIX9D / VIX / VIX3M / VIX6M.
+- Crédito, breadth, momentum, drawdown, relativos y opciones.
+- Manual integrado.
 
-2. **Term structure de volatilidad (nuevo).** Se agregan `^VIX9D`, `^VIX3M`, `^VIX6M`.
-   El ratio **VIX/VIX3M** es el núcleo del estrés sistémico: >1 (backwardation) =
-   estrés agudo de corto plazo. Señal más limpia que SKEW/VVIX.
+### Página VIX/VIX3M — `pages/2_VIX_VIX3M_Probabilidades.py`
 
-3. **Cambios (deltas), no solo niveles.** Salto de VXN 1d y cambio del 10Y entran por
-   percentil del *cambio*. El sentimiento táctico vive en la velocidad del movimiento.
+- Descarga histórica automática de VIX, VIX3M y SPX.
+- Ocho regímenes: normal, transición, prealerta, continuación, inversión, pánico, rebote y recuperación.
+- Probabilidad de nuevo mínimo y caídas adicionales en varios horizontes.
+- Probabilidad de cierre positivo o negativo.
+- Retorno y excursión adversa medianos.
+- Probabilidad base, probabilidad condicionada y lift.
+- Intervalo de confianza del 95% y límite conservador.
+- Regla exacta y casos históricos análogos.
+- Biblioteca comparativa y descarga CSV.
 
-4. **Relativos multi-ventana.** SMH-QQQ, QQQ-SPY, NVDA-SMH a 5 y 20 días (no 1 día).
-   Mide momentum relativo, no una sola rueda ruidosa.
+## Archivos principales
 
-5. **Breadth (amplitud).** % de nombres del universo por encima de su MA50, total y
-   sectorial (semis). Capta el deterioro interno que los índices concentrados esconden.
+- `app.py` — dashboard principal.
+- `data_sources.py` — datos y métricas del dashboard principal.
+- `scoring.py` — composites y semáforos.
+- `manual.py` — manual dentro de la aplicación.
+- `vix_probability_engine.py` — descarga, escenarios y estadísticas históricas.
+- `pages/2_VIX_VIX3M_Probabilidades.py` — interfaz del motor probabilístico.
+- `config.py` — parámetros y tickers.
+- `requirements.txt` — dependencias.
 
-6. **Momentum / sobreventa.** RSI(14) de SMH/QQQ y drawdown vs máximo de 52 semanas,
-   alimentando el score de Capitulation.
+## Publicación en Streamlit Cloud
 
-7. **Crédito mejor aislado.** HYG vs IEF (high yield vs Treasuries) en vez de HYG vs LQD,
-   que mezclaba duración.
+Subir todos los archivos y la carpeta `pages` al mismo repositorio. Mantener:
 
-8. **Lectura táctica honesta.** Se eliminaron los porcentajes inventados
-   (tipo "60-70%"). Hasta tener un backtest real, es una lectura cualitativa de postura,
-   no una probabilidad calibrada.
+- **Main file path:** `app.py`
 
-9. **Avisos de cobertura.** Si el put/call de CBOE (scraping frágil) no llega, el tablero
-   avisa que Options/Capitulation están parciales en vez de mostrar números a medias.
+Streamlit detecta automáticamente la segunda página.
 
-## Archivos
+## Actualización desde una versión anterior
 
-- `app.py` — UI
-- `data_sources.py` — descarga + cálculo de métricas y scores por percentil
-- `scoring.py` — agregación en 5 composites + lectura táctica + tablas de referencia
-- `config.py` — tickers y parámetros
-- `requirements.txt`
+Reemplazar los archivos existentes por los de esta carpeta y agregar:
 
-## Deploy en Streamlit Cloud
+- `vix_probability_engine.py`
+- la carpeta `pages`
 
-Subir todos los archivos a la raíz del repo. En Streamlit Cloud:
-- Main file path: `app.py`
+No es necesario crear otra aplicación en Streamlit Cloud.
 
-Sin dependencias ni API keys nuevas respecto de v3.
+## Advertencia
 
-## Pendiente (no incluido a propósito)
-
-- **FRED (HY OAS)**: mejor que HYG/IEF pero requiere API key + secrets → fricción de deploy.
-- **Backtest de calibración**: validar pesos y umbrales contra retornos forward del SMH.
-  Meter números "calibrados" sin esto sería sobreajuste. Es el siguiente paso natural.
-
-## Nota
-
-Datos gratuitos/demorados (Yahoo + CBOE). No reemplaza una plataforma profesional ni
-constituye recomendación de inversión.
+Datos gratuitos y potencialmente demorados de Yahoo, Cboe y FRED. Las frecuencias históricas no garantizan resultados futuros y no constituyen recomendación de inversión.

@@ -127,6 +127,23 @@ Si hay que entender un solo numero, es el ratio **VIX/VIX3M**: compara el miedo 
 
 El umbral 0,95 surgio de observar que las bajas aparecian antes de la inversion total. El backtest lo confirmo.
 
+### 6.1 Pagina de probabilidades VIX/VIX3M
+
+El tablero principal muestra **intensidad y postura**. La pagina adicional transforma el estado actual en
+frecuencias historicas condicionadas y responde preguntas distintas:
+
+| Pregunta | Metrica adecuada |
+|---|---|
+| ¿Puede aparecer un precio inferior? | Nuevo minimo y excursion adversa en 3, 5 o 10 ruedas. |
+| ¿Puede caer una magnitud concreta? | Probabilidad de -0,5%, -1%, -2%, -3%, -5% o -10%. |
+| ¿Como termina el horizonte? | Probabilidad de cierre negativo/positivo y retorno mediano. |
+| ¿La senal mejora realmente? | Probabilidad base, probabilidad condicionada y lift. |
+| ¿Que tan firme es la estimacion? | Cantidad de casos e intervalo de confianza del 95%. |
+
+Una probabilidad alta de nuevo minimo **no equivale** a igual probabilidad de cierre negativo: el SPX puede
+hacer un minimo inferior durante la semana y luego recuperar. Por eso el motor separa recorrido, resultado final
+y recuperacion.
+
 ---
 
 ## 7. La evidencia: el backtest

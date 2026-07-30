@@ -27,6 +27,12 @@ st.caption("Scoring por percentil (~2 anios) + semaforos + pesos recalibrados co
 with st.sidebar:
     st.header("Configuracion")
     st.button("\U0001F4D6 Manual de la herramienta", use_container_width=True, on_click=open_manual)
+    st.page_link(
+        "pages/2_VIX_VIX3M_Probabilidades.py",
+        label="Probabilidades VIX/VIX3M",
+        icon="📊",
+        use_container_width=True,
+    )
     st.markdown("---")
     auto_refresh = st.toggle("Auto-refrescar", value=True)
     refresh_minutes = st.slider("Refresco (min)", 1, 30, DEFAULT_REFRESH_MINUTES, 1)
@@ -166,6 +172,17 @@ ts2 = st.columns(3)
 ts2[0].metric("VIX9D (9 dias)", f"{metrics.get('VIX9D', float('nan')):.1f}" if metrics.get("VIX9D") == metrics.get("VIX9D") else "s/d")
 ts2[1].metric("VIX (30 dias)", f"{metrics.get('VIX', float('nan')):.1f}" if metrics.get("VIX") == metrics.get("VIX") else "s/d")
 ts2[2].metric("VIX3M (3 meses)", f"{metrics.get('VIX3M', float('nan')):.1f}" if metrics.get("VIX3M") == metrics.get("VIX3M") else "s/d")
+
+st.caption(
+    "El score del tablero mide intensidad relativa. La página estadística separa probabilidad de nuevo mínimo, "
+    "caída adicional, cierre del horizonte y rebote; además muestra base, lift e intervalo conservador."
+)
+st.page_link(
+    "pages/2_VIX_VIX3M_Probabilidades.py",
+    label="Abrir probabilidades condicionadas y escenarios SPX",
+    icon="📊",
+    use_container_width=True,
+)
 
 # ---------------------------------------------------------------------
 # Indicadores con semaforo + interpretacion direccional
