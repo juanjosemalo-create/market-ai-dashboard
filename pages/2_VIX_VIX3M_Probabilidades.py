@@ -3,6 +3,9 @@ from __future__ import annotations
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+from streamlit_autorefresh import st_autorefresh
+
+from shared_market_cache import cached_intraday_shared
 
 from vix_probability_engine import (
     Row,
@@ -11,6 +14,7 @@ from vix_probability_engine import (
     URL_SPX_YAHOO,
     URL_VIX,
     URL_VIX3M,
+    apply_live_snapshot,
     build_analysis,
     fetch_all,
     metric_lift,
@@ -41,20 +45,49 @@ st.markdown(
 )
 
 
-@st.cache_data(ttl=3600, show_spinner=False)
-def cached_market_data(cache_version: int = 0):
-    del cache_version
+@st.cache_data(ttl=60 * 60 * 6, show_spinner=False)
+def cached_historical_market_data():
+    # Historia oficial para calibrar probabilidades. No necesita refresco intradía.
     return fetch_all()
+
+
+def _last_value(frame: pd.DataFrame, column: str):
+    if column not in frame.columns:
+        return None, None
+    series = pd.to_numeric(frame[column], errors="coerce").ffill().dropna()
+    if series.empty:
+        return None, None
+    return float(series.iloc[-1]), series.index[-1]
+
+
+def _live_snapshot(frame: pd.DataFrame) -> dict:
+    vix, ts_vix = _last_value(frame, "^VIX")
+    vix3m, ts_vix3m = _last_value(frame, "^VIX3M")
+    spx, ts_spx = _last_value(frame, "^GSPC")
+    timestamps = [ts for ts in (ts_vix, ts_vix3m, ts_spx) if ts is not None]
+    latest_ts = max(timestamps) if timestamps else None
+    day = latest_ts.date().isoformat() if latest_ts is not None else None
+    return {
+        "vix": vix,
+        "vix3m": vix3m,
+        "spx": spx,
+        "day": day,
+        "timestamp": str(latest_ts) if latest_ts is not None else None,
+    }
 
 
 with st.sidebar:
     st.header("Motor probabilístico")
     st.page_link("app.py", label="Volver al tablero principal", icon="↩️")
     st.divider()
-    refresh = st.button("🔄 Actualizar y recalibrar", use_container_width=True, type="primary")
+    auto_refresh = st.toggle("Auto-refrescar intradía", value=True)
+    refresh_minutes = st.slider("Refresco (min)", 1, 30, 5, 1)
+    refresh = st.button("🔄 Actualizar datos ahora", use_container_width=True, type="primary")
     if refresh:
-        cached_market_data.clear()
-    st.caption("Descarga VIX, VIX3M y SPX, y recalcula todas las frecuencias históricas.")
+        cached_intraday_shared.clear()
+        # La historia sólo se fuerza si el usuario lo pide; normalmente Cboe cambia al cierre.
+        cached_historical_market_data.clear()
+    st.caption("El ratio actual usa el mismo snapshot intradía que el tablero principal. Cboe se usa para la calibración histórica.")
     st.divider()
     st.markdown(
         """
@@ -68,6 +101,9 @@ with st.sidebar:
     )
     st.caption("Uso analítico. No constituye recomendación de inversión.")
 
+if auto_refresh:
+    st_autorefresh(interval=refresh_minutes * 60 * 1000, key="vix_probability_refresh")
+
 st.title("VIX/VIX3M · Probabilidades y escenarios para el SPX")
 st.caption(
     "Complementa los scores del tablero principal con frecuencias históricas condicionadas. "
@@ -75,8 +111,26 @@ st.caption(
 )
 
 try:
-    with st.spinner("Descargando mercado y recalibrando escenarios históricos…"):
-        rows, meta = cached_market_data(1 if refresh else 0)
+    with st.spinner("Descargando mercado y actualizando el escenario…"):
+        rows, meta = cached_historical_market_data()
+        intraday = cached_intraday_shared()
+        live = _live_snapshot(intraday)
+        if live["vix"] is not None and live["vix3m"] is not None:
+            rows, meta = apply_live_snapshot(
+                rows,
+                meta,
+                vix=live["vix"],
+                vix3m=live["vix3m"],
+                spx=live["spx"],
+                day=live["day"],
+                timestamp=live["timestamp"],
+                source="Yahoo Finance intradía · caché compartida con el tablero principal",
+            )
+        else:
+            meta = dict(meta)
+            meta["warnings"] = list(meta.get("warnings", [])) + [
+                "Yahoo no entregó VIX/VIX3M intradía; se muestra el último cierre oficial de Cboe."
+            ]
         analysis = build_analysis(rows, meta)
 except Exception as exc:
     st.error("No fue posible descargar o procesar los datos.")
@@ -91,10 +145,13 @@ current: Row = analysis["current"]
 scenario = analysis["scenario"]
 level = scenario["level"]
 
+current_source = meta.get("current_source", "Cboe · cierre diario")
+live_time = meta.get("live_timestamp")
 st.success(
     f"Datos al {current.day} · {meta['aligned_rows']:,} ruedas alineadas · "
-    f"SPX: {meta['spx_source']}"
+    f"Snapshot actual: {current_source}" + (f" · {live_time}" if live_time else "")
 )
+st.caption(f"Historia SPX para el backtest: {meta['spx_source']} · Último cierre oficial alineado: {meta.get('official_last_date', meta.get('last_date', current.day))}")
 if meta["warnings"]:
     st.warning(" | ".join(meta["warnings"]))
 

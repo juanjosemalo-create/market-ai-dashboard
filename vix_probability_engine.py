@@ -180,6 +180,63 @@ def fetch_all() -> tuple[list[Row], dict]:
     return rows, meta
 
 
+
+def apply_live_snapshot(
+    rows: list[Row],
+    meta: dict,
+    *,
+    vix: float,
+    vix3m: float,
+    spx: Optional[float] = None,
+    day: Optional[str] = None,
+    timestamp: Optional[str] = None,
+    source: str = "Yahoo Finance intradía",
+) -> tuple[list[Row], dict]:
+    """Superpone el snapshot intradía sobre la historia oficial.
+
+    La calibración histórica continúa usando cierres diarios de Cboe/SPX. Sólo la
+    última fila se reemplaza o agrega con el mismo dato intradía que utiliza el
+    tablero principal. De este modo el ratio visible en ambas páginas queda
+    sincronizado sin contaminar los eventos históricos ya cerrados.
+    """
+    if not rows:
+        raise ValueError("No hay historia sobre la cual aplicar el snapshot intradía")
+    if not (math.isfinite(vix) and vix > 0 and math.isfinite(vix3m) and vix3m > 0):
+        return rows, meta
+
+    live_day = day or datetime.now(timezone.utc).date().isoformat()
+    live_spx = float(spx) if spx is not None and math.isfinite(spx) and spx > 0 else rows[-1].spx
+
+    # Copia sólo los datos crudos para no modificar el objeto cacheado.
+    updated = [Row(day=r.day, vix=r.vix, vix3m=r.vix3m, spx=r.spx) for r in rows]
+    official_last_date = updated[-1].day
+
+    if live_day < official_last_date:
+        new_meta = dict(meta)
+        new_meta.setdefault("warnings", [])
+        new_meta["warnings"] = list(new_meta["warnings"]) + [
+            f"El snapshot intradía ({live_day}) era anterior al último cierre oficial ({official_last_date}); no se aplicó."
+        ]
+        return rows, new_meta
+
+    if live_day == official_last_date:
+        updated[-1] = Row(day=live_day, vix=float(vix), vix3m=float(vix3m), spx=live_spx)
+        mode = "reemplazo de la última rueda"
+    else:
+        updated.append(Row(day=live_day, vix=float(vix), vix3m=float(vix3m), spx=live_spx))
+        mode = "fila intradía agregada"
+
+    compute_features(updated)
+    new_meta = dict(meta)
+    new_meta["official_last_date"] = official_last_date
+    new_meta["last_date"] = updated[-1].day
+    new_meta["aligned_rows"] = len(updated)
+    new_meta["current_source"] = source
+    new_meta["live_overlay_mode"] = mode
+    if timestamp:
+        new_meta["live_timestamp"] = timestamp
+    return updated, new_meta
+
 def trailing_max(values: list[float], start: int, end: int) -> float:
     return max(values[max(0, start): end + 1])
 

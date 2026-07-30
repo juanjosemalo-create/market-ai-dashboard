@@ -37,6 +37,7 @@ BREADTH_SEMIS = ["SMH", "SOXX", "NVDA", "AMD", "AVGO", "MU", "MRVL", "TSM", "ARM
 
 # Índices de volatilidad y macro.  NUEVO: term structure completa.
 INDEX_TICKERS = {
+    "^GSPC": "S&P 500 Index",   # compartido con el motor VIX/VIX3M para snapshot intradía
     "^VIX": "VIX (30d)",
     "^VIX9D": "VIX9D (9d)",     # NUEVO
     "^VIX3M": "VIX3M (3m)",     # NUEVO

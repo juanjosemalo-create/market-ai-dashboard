@@ -1,0 +1,26 @@
+CORRECCIÓN DE SINCRONIZACIÓN VIX/VIX3M
+=====================================
+
+Problema corregido
+------------------
+La página principal tomaba VIX y VIX3M intradía desde Yahoo Finance cada 3 minutos.
+La página probabilística utilizaba los cierres históricos diarios de Cboe, que suelen
+actualizarse al cierre. Por eso los ratios podían ser distintos durante la rueda.
+
+Solución aplicada
+-----------------
+1. Ambas páginas comparten ahora la misma caché intradía.
+2. La página probabilística mantiene Cboe para calibrar toda la historia.
+3. La última fila se reemplaza/agrega con el snapshot intradía de Yahoo.
+4. El botón Actualizar datos ahora vacía tanto la caché intradía como la histórica.
+5. La página informa claramente la fuente y timestamp del snapshot actual.
+6. Se incorporó ^GSPC al universo intradía para actualizar también SPX.
+
+Cómo instalar
+-------------
+Subir y reemplazar TODOS los archivos en el mismo repositorio de GitHub, incluida
+la carpeta pages y el nuevo archivo shared_market_cache.py. Mantener app.py como
+Main file path en Streamlit Cloud.
+
+Después del commit, esperar a que Streamlit reinicie la aplicación. Si la app sigue
+mostrando el código anterior, abrir Manage app > Reboot app.

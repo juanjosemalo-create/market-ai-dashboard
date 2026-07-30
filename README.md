@@ -56,3 +56,8 @@ No es necesario crear otra aplicación en Streamlit Cloud.
 ## Advertencia
 
 Datos gratuitos y potencialmente demorados de Yahoo, Cboe y FRED. Las frecuencias históricas no garantizan resultados futuros y no constituyen recomendación de inversión.
+
+
+## Sincronización intradía VIX/VIX3M
+
+La portada y la página probabilística comparten ahora el mismo snapshot intradía de Yahoo Finance, cacheado por tres minutos. Cboe se conserva como fuente histórica para calibrar las probabilidades. La página probabilística muestra la fuente y la hora del snapshot actual.

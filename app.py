@@ -18,6 +18,7 @@ from scoring import (
     SCORE_RANGES, SCORE_EXPLANATIONS, SCORE_MEANING, INDICATOR_REFERENCE, GLOSSARY,
 )
 from manual import render_manual, open_manual
+from shared_market_cache import cached_intraday_shared
 
 st.set_page_config(page_title="AI / Semis Market Sentiment v5", layout="wide")
 st.title("AI / Semis Market Sentiment Dashboard - v5")
@@ -59,10 +60,6 @@ def cached_daily():
     return fetch_daily_history(period="2y", interval="1d")
 
 
-@st.cache_data(ttl=60 * 3, show_spinner=False)
-def cached_intraday():
-    return fetch_intraday(period="5d", interval="5m")
-
 
 @st.cache_data(ttl=60 * 30, show_spinner=False)
 def cached_cboe():
@@ -75,11 +72,11 @@ def cached_options():
 
 
 if force:
-    cached_daily.clear(); cached_intraday.clear(); cached_cboe.clear(); cached_options.clear()
+    cached_daily.clear(); cached_intraday_shared.clear(); cached_cboe.clear(); cached_options.clear()
 
 with st.spinner("Descargando datos..."):
     daily = cached_daily()
-    intraday = cached_intraday()
+    intraday = cached_intraday_shared()
     cboe = cached_cboe() if include_cboe else {}
     metrics = build_metrics(daily, intraday, cboe)
     metrics.update(compute_composites(metrics))
